@@ -1,2 +1,18 @@
 # proxyforwarder
-TCP &amp; UDP port forwarder with monitoring &amp; metrics. TCP support port range, connection pools, retry mechanism, max con, yaml. UDP supports single port forwarder.
+
+این برنامه با C++ نوشته شده است. این پروژه در راستای یادگیری این زبان میباشد. tcP در حال حاضر از پورت رنج و به صورت single پشتیبانی میکند(محدودیت برای پورت رنج گذاشتم)
+
+دارای ban و unban کردن ایپی های اتصالی به برنامه را دارد و ایپی های peers ها را هم نشان میدهد. مقدار ترافیک مصرفی بر اساس ایپی کاربر و پورت در صفحه مانیتورینگ نشان داده میشود. 
+
+برای udp هم باید از لوکال ها استفاده کرد اگر سرور ایران شما محدودیت دارد و میخواهم udp به صورت single connection بماند.
+
+کارهایی که مانده است
+- نهایی کردن کد های tcp و udp
+- ایجاد makelist یا کامپایل
+- ایجاد binary
+- نهایی کردن html برای مانیتورینگ
+- دیباگ برای پیدا کردن خطا ها و memory leak
+- در اینده ایجاد تغییرات در Localtun برای بهتر Match شدن این پروژه با آن
+- بعد از اماده شدن، قرار داده خواهد شد
+
+
