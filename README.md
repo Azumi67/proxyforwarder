@@ -180,6 +180,7 @@ chmod +x /root/proxyforwarder/src/tcp.sh
 nano /etc/systemd/system/tcpforwarder.service
 ```
  <div align="right">
+   
 - برای tcp
  <div align="left">
      
@@ -209,6 +210,7 @@ sudo systemctl start tcpforwarder.service
 sudo systemctl status tcpforwarder.service
 ```
  <div align="right">
+   
 - برای udp
 
  <div align="left">
