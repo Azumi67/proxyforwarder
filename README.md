@@ -72,13 +72,17 @@
 ------------------------------------ 
 
   ![6348248](https://github.com/Azumi67/PrivateIP-Tunnel/assets/119934376/398f8b07-65be-472e-9821-631f7b70f783)
-**آموزش استفاده از برنامه توسط اسکریپت**
+**آموزش استفاده از برنامه با و بدون اسکریپت**
 
  <div align="right">
   <details>
     <summary><strong><img src="https://github.com/Azumi67/Rathole_reverseTunnel/assets/119934376/fcbbdc62-2de5-48aa-bbdd-e323e96a62b5" alt="Image"> </strong>نمونه config.yaml</summary>
 
 ------------------
+
+- نمونه کانفیگ tcp
+ <div align="left">
+   
 ```
 #TCP USAGE
 forwarders:
@@ -128,11 +132,108 @@ logging:
   file: "logfile.log" # Name of the file
   level: "INFO"  # Options: "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "ALL"
 ```
-
  <div align="right">
-  <details>
-    <summary><strong><img src="https://github.com/Azumi67/Rathole_reverseTunnel/assets/119934376/fcbbdc62-2de5-48aa-bbdd-e323e96a62b5" alt="Image"> </strong>TCP Forwarder</summary>
+- نمونه کانفیگ tcp
+ <div align="left">
+   
+```
+#UDP USAGE
+srcAddrPorts:
+  - "0.0.0.0:1150"  #only ipv4 USE Geneve local ip if your server is limited
+  - "0.0.0.0:1151"
+dstAddrPorts:
+  - "66.200.1.1:1150"
+  - "66.200.1.2:1151"
+
+timeout: 300   # Timeout for idle connections (in seconds)
+buffer_size: 8092   #buffer size or max 65530
+thread_pool:
+  threads: 2
+
+logging:
+  enabled: true  # Enable/disable logging
+  file: "logfile.log" #log file directory
+  level: "INFO"  # Log level: TRACE, DEBUG, INFO, WARN, ERROR
+monitroing_port: 8080 # or whatever port you want
+```
 
 ------------------
 
-- تصور را بر ان میذارم که میخواهید با استفاده از اسکریپت پیش نیاز ها را نصب کنید و بعد از کامپایل کردن برنامه، از ان استفاده کنید. یا فقط میخواهید از ان برای نصب پیش نیاز ها و کامپایل استفاده کنید
+  </details>
+</div>
+ <div align="right">
+  <details>
+    <summary><strong><img src="https://github.com/Azumi67/Rathole_reverseTunnel/assets/119934376/fcbbdc62-2de5-48aa-bbdd-e323e96a62b5" alt="Image"> </strong>نحوه استفاده از اسکریپت برای tcp یا Udp</summary>
+
+------------------
+
+<p align="right">
+  <img src="https://github.com/user-attachments/assets/35b7f906-ada3-4b72-947a-c0cf8834a73d" alt="Image" />
+</p>
+
+- نخست فایل config.yaml را طبق اموزش اماده میکنم و سپس پیش نیاز ها را نصب میکنم و بسته به نیاز tcp یا udp را start میکنم. برنامه اجرا میشود و سپس میتوانم از طریق ipserveriran:port به مانیتورینگ دسترسی پیدا کنم و بعد از ساختن یوزر نیم و پسورد به داخل صفحه اصلی مانیتورینگ میشوم
+- برای اینکه هر دفعه برای اجرای این برنامه وارد این اسکریپت نشوم، یک سرویس درست میکنم و مسیر اسکریپت tcp.sh یا udp.sh را در داخلش قرار میدهم. مانند نمونه زیر
+```
+chmod +x /root/proxyforwarder/src/tcp.sh
+nano /etc/systemd/system/tcpforwarder.service
+```
+- برای tcp
+```
+[Unit]
+Description=TCP Forwarder and Flask Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/proxyforwarder/src
+ExecStart=/root/proxyforwarder/src/tcp.sh /root/proxyforwarder/src/config.yaml
+Restart=on-failure
+Environment="PATH=/root/proxyforwarder/src/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+[Install]
+WantedBy=multi-user.target
+```
+```
+sudo systemctl daemon-reload
+
+sudo systemctl enable tcpforwarder.service
+
+sudo systemctl start tcpforwarder.service
+
+sudo systemctl status tcpforwarder.service
+```
+- برای udp
+```
+chmod +x /root/proxyforwarder/src/udp.sh
+nano /etc/systemd/system/udpforwarder.service
+```
+```
+[Unit]
+Description=UDP Forwarder and Flask Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/proxyforwarder/src
+ExecStart=/root/proxyforwarder/src/udp.sh /root/proxyforwarder/src/config.yaml
+Restart=on-failure
+Environment="PATH=/root/proxyforwarder/src/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+[Install]
+WantedBy=multi-user.target
+```
+```
+sudo systemctl daemon-reload
+
+sudo systemctl enable udpforwarder.service
+
+sudo systemctl start udpforwarder.service
+
+sudo systemctl status udpforwarder.service
+```
+  </details>
+</div>
+  
+------------------------------------ 
