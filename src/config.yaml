@@ -1,0 +1,67 @@
+#TCP USAGE
+forwarders:
+  - listen_address: "0.0.0.0"         # Address to listen on (IPv4)
+    listen_port: 8080                # Port to listen on
+    target_address: "192.168.1.10"   # Target address to forward traffic to
+    target_port: 9090                # Target port to forward traffic to
+
+  - listen_address: "::"             # Address to listen on (IPv6)
+    listen_port: 7070                # Another forwarder configuration
+    target_address: "2001:db8::1"
+    target_port: 8081
+# port range
+  - listen_address: "0.0.0.0"
+    target_address: "192.168.1.10"
+    port_range:
+      start: 8080
+      end: 8085
+
+  - listen_address: "::"  # IPv6 address
+    target_address: "fe80::1"  # IPv6 target address
+    port_range:
+      start: 9090
+      end: 9095
+
+thread_pool:
+  threads: 2    # threads for cpu cores
+
+max_connections: 200  # Maximum number of simultaneous active connections
+retry_attempts: 3   # Number of retry attempts for connections
+retry_delay: 2      # delay between retries in seconds
+tcp_no_delay: true  # Disable Nagle's algorithm for low latency
+buffer_size: 8092  #max buffer size 65535 or whatever
+
+monitoring_port: 8080  # monitoring port used by flask
+
+timeout:
+  connection: 30  # Timeout for connections in seconds
+
+health_check:
+  enabled: true  #true or false
+  interval: 60  # Interval for performing health checks in seconds
+
+logging:
+  enabled: true   # Enable or disable logging (true/false)
+  file: "logfile.log" # Name of the file
+  level: "INFO"  # Options: "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "ALL"
+
+
+
+#UDP USAGE
+srcAddrPorts:
+  - "0.0.0.0:1150"  #only ipv4 USE Geneve local ip if your server is limited
+  - "0.0.0.0:1151"
+dstAddrPorts:
+  - "66.200.1.1:1150"
+  - "66.200.1.2:1151"
+
+timeout: 300   # Timeout for idle connections (in seconds)
+buffer_size: 8092   #buffer size or max 65530
+thread_pool:
+  threads: 2
+
+logging:
+  enabled: true  # Enable/disable logging
+  file: "logfile.log" #log file directory
+  level: "INFO"  # Log level: TRACE, DEBUG, INFO, WARN, ERROR
+monitroing_port: 8080 # or whatever port you want
