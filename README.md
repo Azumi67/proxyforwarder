@@ -171,7 +171,26 @@ monitroing_port: 8080 # or whatever port you want
   <img src="https://github.com/user-attachments/assets/35b7f906-ada3-4b72-947a-c0cf8834a73d" alt="Image" />
 </p>
 
-- نخست فایل config.yaml را طبق اموزش اماده میکنم و سپس پیش نیاز ها را نصب میکنم و بسته به نیاز tcp یا udp را start میکنم. برنامه اجرا میشود و سپس میتوانم از طریق ipserveriran:port به مانیتورینگ دسترسی پیدا کنم و بعد از ساختن یوزر نیم و پسورد به داخل صفحه اصلی مانیتورینگ میشوم
+- نخست دستورات پایین را اجرا میکنم
+<div align="left">
+  
+```
+apt update -y
+apt install git -y
+git clone https://github.com/Azumi67/proxyforwarder.git
+cd proxyforwarder
+```
+ <div align="right">
+   
+- سپس فایل config.yaml را طبق اموزش اماده میکنم و سپس پیش نیاز ها را نصب میکنم و بسته به نیاز tcp یا udp را start میکنم. برنامه اجرا میشود و سپس میتوانم از طریق ipserveriran:port به مانیتورینگ دسترسی پیدا کنم و بعد از ساختن یوزر نیم و پسورد به داخل صفحه اصلی مانیتورینگ میشوم
+<div align="left">
+  
+```
+chmod +x forwarder.sh
+./forwarder.sh /root/proxyforwarder/src/config.yaml
+```
+ <div align="right">
+   
 - برای اینکه هر دفعه برای اجرای این برنامه وارد این اسکریپت نشوم، یک سرویس درست میکنم و مسیر اسکریپت tcp.sh یا udp.sh را در داخلش قرار میدهم. مانند نمونه زیر
  <div align="left">
    
@@ -246,5 +265,11 @@ sudo systemctl status udpforwarder.service
 ```
   </details>
 </div>
-  
------------------------------------- 
+ <div align="right">
+  <details>
+    <summary><strong><img src="https://github.com/Azumi67/Rathole_reverseTunnel/assets/119934376/fcbbdc62-2de5-48aa-bbdd-e323e96a62b5" alt="Image"> </strong>اجرای برنامه بدون مانیتورینگ</summary>
+
+------------------
+
+  </details>
+</div>
