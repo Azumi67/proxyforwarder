@@ -78,20 +78,10 @@ function check_ulimits() {
 }
 
 function install_yaml_cpp_json() {
-    print_info "Installing yaml-cpp and json.hpp..."
-    
-    if [ ! -d "yaml-cpp" ]; then
-        git clone https://github.com/jbeder/yaml-cpp.git
-    fi
-    cd yaml-cpp
-    mkdir -p build && cd build
-    cmake .. && make -j$(nproc)
-    sudo make install
-    cd ../../
-    print_success "yaml-cpp installed."
+    print_info "Installing json.hpp..."
 
     if [ ! -f "json.hpp" ]; then
-        wget -O json.hpp https://github.com/nlohmann/json/releases/latest/download/json.hpp
+        wget -O json.hpp https://github.com/nlohmann/json/releases/latest/download/json.hpp || { print_error "Failed to download json.hpp"; exit 1; }
         print_success "json.hpp downloaded."
     else
         print_info "json.hpp already exists."
@@ -139,16 +129,26 @@ function install_stuff() {
 }
 
 function setup_virtualenv() {
-    if [ ! -d "venv" ]; then
+    local venv_dir="$(pwd)/venv"
+    
+    if [ ! -d "$venv_dir" ]; then
         print_info "Creating Python virtual environment..."
-        python3 -m venv "$(pwd)/venv" || { print_error "Couldn't create virtual environment."; exit 1; }
+        python3 -m venv "$venv_dir" || { print_error "Couldn't create virtual environment."; exit 1; }
         print_success "Virtual environment created."
     else
         print_success "Virtual environment already exists."
     fi
 
     print_info "Activating virtual environment..."
-    source "$(pwd)/venv/bin/activate" || { print_error "Couldn't activate virtual environment."; exit 1; }
+    source "$venv_dir/bin/activate" || { print_error "Couldn't activate virtual environment."; exit 1; }
+    print_success "Virtual environment activated."
+
+    print_info "Installing Python packages..."
+    pip install --upgrade pip
+    pip install Flask Flask-Caching Flask-Login bcrypt pyotp pyyaml psutil scapy python-telegram-bot || {
+        print_error "Couldn't install some Python packages."; exit 1;
+    }
+    print_success "Python packages installed successfully."
 }
 
 
