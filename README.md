@@ -363,3 +363,85 @@ net.ipv6.conf.all.forwarding = 1
 CTRL+X و  Y
 sudo sysctl -p
 ```
+
+  </details>
+</div>
+ <div align="right">
+  <details>
+    <summary><strong><img src="https://github.com/Azumi67/Rathole_reverseTunnel/assets/119934376/fcbbdc62-2de5-48aa-bbdd-e323e96a62b5" alt="Image"> </strong>نحوه استفاده از ربات</summary>
+
+------------------
+
+- نخست داخل یک سرور خارج، ربات را دانلود میکنم
+
+ <div align="left">
+   
+```
+#not externally managed
+-----------------------
+apt update -y
+apt install git -y
+git clone https://github.com/Azumi67/proxyforwarder.git
+cd proxyforwarder/telegramBot
+sudo apt install -y python3 python3-pip python3-venv
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install python-telegram-bot requests pyyaml
+pip freeze
+
+#externally managed
+-----------------------
+apt update -y
+apt install git -y
+git clone https://github.com/Azumi67/proxyforwarder.git
+cd proxyforwarder/telegramBot
+sudo apt install -y python3 python3-pip python3-venv
+apt install python3.11-venv -y
+python3 -m venv ~/telegram_bot_env
+source ~/telegram_bot_env/bin/activate
+pip install -r requirements.txt
+deactivate
+python3 robot.py
+```
+ <div align="right">
+   
+- سپس از شما توکن بات و صفحه مانیتورینگ را میخواهد. به طور مثال ایپی ایران شما 2.2.2.2 میباشد و پورت مانیتورینگ 8080 است . پس url برای شما 2.2.2.2:8080 است
+- سپس از شما api key را میخواهد که از قبل باید داخل قسمت api key management در داخل 2.2.2.2:8080 ساخته باشد و paste کنید
+- سپس میتوانید از ربات برای مانیتورینگ استفاده نمایید
+- دقت نمایید api key management را از قبل بسازید و قبلا ربات خود را از botfather داخل تلگرام دریافت کرده باشید.
+- میتوانید ربات را داخل سرویس قرار بدید که برای همیشه فعال باشد
+
+ <div align="left">
+
+ ```
+nano /etc/systemd/system/telegram_bot.service
+-------------------------------
+[Unit]
+Description=Telegram Bot Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/proxyforwarder/telegramBot
+ExecStart=/root/telegram_bot_env/bin/python /root/proxyforwarder/telegramBot/robot.py
+Restart=always
+RestartSec=5
+Environment="PYTHONUNBUFFERED=1"
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=telegram_bot
+
+[Install]
+WantedBy=multi-user.target
+
+---------------
+sudo systemctl daemon-reload
+sudo systemctl enable telegram_bot
+sudo systemctl start telegram_bot
+sudo systemctl status telegram_bot
+```
+
+  </details>
+</div>
