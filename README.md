@@ -173,11 +173,16 @@ monitroing_port: 8080 # or whatever port you want
 
 - نخست فایل config.yaml را طبق اموزش اماده میکنم و سپس پیش نیاز ها را نصب میکنم و بسته به نیاز tcp یا udp را start میکنم. برنامه اجرا میشود و سپس میتوانم از طریق ipserveriran:port به مانیتورینگ دسترسی پیدا کنم و بعد از ساختن یوزر نیم و پسورد به داخل صفحه اصلی مانیتورینگ میشوم
 - برای اینکه هر دفعه برای اجرای این برنامه وارد این اسکریپت نشوم، یک سرویس درست میکنم و مسیر اسکریپت tcp.sh یا udp.sh را در داخلش قرار میدهم. مانند نمونه زیر
+ <div align="left">
+   
 ```
 chmod +x /root/proxyforwarder/src/tcp.sh
 nano /etc/systemd/system/tcpforwarder.service
 ```
+ <div align="right">
 - برای tcp
+ <div align="left">
+     
 ```
 [Unit]
 Description=TCP Forwarder and Flask Server
@@ -203,7 +208,11 @@ sudo systemctl start tcpforwarder.service
 
 sudo systemctl status tcpforwarder.service
 ```
+ <div align="right">
 - برای udp
+
+ <div align="left">
+   
 ```
 chmod +x /root/proxyforwarder/src/udp.sh
 nano /etc/systemd/system/udpforwarder.service
