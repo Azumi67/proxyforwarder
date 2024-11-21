@@ -178,7 +178,7 @@ monitroing_port: 8080 # or whatever port you want
 apt update -y
 apt install git -y
 git clone https://github.com/Azumi67/proxyforwarder.git
-cd proxyforwarder
+cd proxyforwarder/src
 ```
  <div align="right">
    
@@ -271,5 +271,95 @@ sudo systemctl status udpforwarder.service
 
 ------------------
 
+- نخست این دستورات را اجرا کنید تا بعدا binary های arch های مختلف را اماده کنم
+
+<div align="left">
+  
+```
+apt update -y
+apt install git -y
+git clone https://github.com/Azumi67/proxyforwarder.git
+cd proxyforwarder/src
+sudo apt install -y build-essential g++ cmake libboost-all-dev libyaml-cpp-dev
+#amd64
+g++ tcp_forwarder.cpp -o tcp_forwarder -std=c++17 -pthread -lboost_system -lyaml-cpp
+#arm64
+g++ tcp_forwarder.cpp -o tcp_forwarder -std=c++17 -pthread -lboost_system -lyaml-cpp
+```
+<div align="right">
+  
+- برای udp
+
+<div align="left">
+  
+```
+apt update -y
+apt install git -y
+git clone https://github.com/Azumi67/proxyforwarder.git
+cd proxyforwarder/src
+sudo apt install -y build-essential g++ libboost-system-dev libyaml-cpp-dev
+#amd64
+g++ udp_forwarder.cpp -o udp_forwarder -std=c++17 -pthread -lboost_system -lyaml-cpp
+#arm64
+g++ udp_forwarder.cpp -o udp_forwarder -std=c++17 -pthread -lboost_system -lyaml-cpp
+```
+<div align="right">
+
+
+- سپس طبق اموزش فایل config.yaml را ویرایش میکنم
+<div align="left">
+  
+```
+nano /root/proxyforwarder/src/config.yaml
+```
+<div align="right">
+
+- سرویس برای برنامه
+
+<div align="left">
+
+```
+nano /etc/systemd/system/tcpforwarder.service
+```
+```
+[Unit]
+Description=TCP Forwarder Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/root/proxyforwarder/src/tcp_forwarder /root/proxyforwarder/src/config.yaml
+Restart=always
+User=root
+WorkingDirectory=/root/proxyforwarder/src
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=tcp_forwarder
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+
+
   </details>
 </div>
+```
+```
+sudo systemctl daemon-reload
+sudo systemctl start tcpforwarder.service
+sudo systemctl enable tcpforwarder.service
+sudo systemctl status tcpforwarder.service
+```
+```
+ulimit -n 65536
+sudo nano /etc/security/limits.conf
+root    hard    nofile    65536
+root    soft    nofile    65536
+```
+```
+sudo nano /etc/sysctl.conf
+net.ipv4.ip_forward = 1
+net.ipv6.conf.all.forwarding = 1
+CTRL+X و  Y
+sudo sysctl -p
+```
