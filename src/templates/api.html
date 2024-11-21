@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>API Key Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #e0e0e0, #f5f5f5);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .main-container {
+            display: flex;
+            width: 100%;
+            max-width: 1400px;
+            margin: auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 250px;
+            background: #2b2b2b;
+            color: #ffffff;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar h2 {
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar ul li {
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 8px;
+            transition: background-color 0.3s, color 0.3s;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .sidebar ul li:hover {
+            background-color: #4a90e2;
+        }
+
+        .sidebar ul li.active {
+            background-color: #4a90e2;
+        }
+
+        .sidebar ul li a {
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .content {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: left;
+            color: #333;
+        }
+
+        .button {
+            background-color: #4a90e2;
+            color: #ffffff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            align-self: flex-start;
+        }
+
+        .button:hover {
+            background-color: #357abf;
+        }
+
+        .api-key-list {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+        }
+
+        .api-key-list ul {
+            list-style-type: disc;
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        .api-key-list ul li {
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+
+            .api-key-list {
+                max-height: 200px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-container">
+        <div class="sidebar">
+            <h2>Navigation</h2>
+            <ul>
+                <li class="{% if request.endpoint == 'home' %}active{% endif %}"><a
+                        href="{{ url_for('home') }}">Home</a></li>
+                <li class="{% if request.endpoint == 'public_ip_settings_page' %}active{% endif %}"><a
+                        href="{{ url_for('public_ip_settings_page') }}">Public IP Settings</a></li>
+                <li class="{% if request.endpoint == 'tunnel_logs' %}active{% endif %}"><a
+                        href="{{ url_for('tunnel_logs') }}">Tunnel Logs</a></li>
+                <li class="{% if request.endpoint == 'api_page' %}active{% endif %}"><a
+                        href="{{ url_for('api_page') }}">API Key Management</a></li>
+                <li><a href="https://github.com/Azumi67" target="_blank">GitHub Profile</a></li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <h1>API Key Management</h1>
+            <button class="button" onclick="generateApiKey()">Generate New API Key</button>
+            <div class="api-key-list">
+                <ul id="api-keys-list">Loading keys...</ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function generateApiKey() {
+            fetch('/api/generate-key', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert("New API Key: " + data.api_key);
+                    loadApiKeys();
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function loadApiKeys() {
+            fetch('/api/keys')
+                .then(response => response.json())
+                .then(data => {
+                    const apiKeysList = document.getElementById('api-keys-list');
+                    apiKeysList.innerHTML = '';
+                    data.api_keys.forEach(key => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = key;
+                        apiKeysList.appendChild(listItem);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        document.addEventListener('DOMContentLoaded', loadApiKeys);
+    </script>
+</body>
+
+</html>

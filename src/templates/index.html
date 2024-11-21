@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Monitoring Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #e0e0e0, #f5f5f5);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .main-container {
+            display: flex;
+            width: 100%;
+            max-width: 1400px;
+            margin: auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: #2b2b2b;
+            color: #ffffff;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar h2 {
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar ul li {
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 8px;
+            transition: background-color 0.3s, color 0.3s;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .sidebar ul li:hover {
+            background-color: #4a90e2;
+        }
+
+        .sidebar ul li.active {
+            background-color: #4a90e2;
+        }
+
+        .sidebar ul li a {
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .content {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            color: #333;
+        }
+
+        .metrics {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .metric-card {
+            flex: 1;
+            background: #4a90e2;
+            padding: 20px;
+            border-radius: 12px;
+            color: #ffffff;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-card h3 {
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .progress {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            background: conic-gradient(#ffffff 0% 0%, transparent 0% 100%);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .progress .inner {
+            width: 80%;
+            height: 80%;
+            background: #4a90e2;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .progress span {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .card p {
+            font-size: 16px;
+            color: #333;
+        }
+
+        .traffic-section {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .traffic-section h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .traffic-section select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .traffic-stats p {
+            font-size: 16px;
+            margin: 5px 0;
+        }
+
+        .system-logs {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .system-logs pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .button {
+            background-color: #4a90e2;
+            color: #ffffff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .button:hover {
+            background-color: #357abf;
+        }
+
+        @media (max-width: 768px) {
+            .metrics {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-container">
+        <div class="sidebar">
+            <h2>Navigation</h2>
+            <ul>
+                <li class="{% if request.endpoint == 'home' %}active{% endif %}"><a href="{{ url_for('home') }}">Home</a></li>
+                <li class="{% if request.endpoint == 'public_ip_settings_page' %}active{% endif %}"><a href="{{ url_for('public_ip_settings_page') }}">Public IP Settings</a></li>
+                <li class="{% if request.endpoint == 'tunnel_logs' %}active{% endif %}"><a href="{{ url_for('tunnel_logs') }}">Tunnel Logs</a></li>
+                <li class="{% if request.endpoint == 'api_page' %}active{% endif %}"><a href="{{ url_for('api_page') }}">API Key Management</a></li>
+                <li><a href="https://github.com/Azumi67" target="_blank">GitHub Profile</a></li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <h1>System Monitoring</h1>
+
+            <div class="metrics">
+                <div class="metric-card">
+                    <h3>CPU Usage</h3>
+                    <div class="progress" id="cpu-progress">
+                        <div class="inner">
+                            <span id="cpu-usage">0%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <h3>RAM Usage</h3>
+                    <div class="progress" id="ram-progress">
+                        <div class="inner">
+                            <span id="ram-usage">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h2>System Uptime</h2>
+                <p id="system-uptime">Loading...</p>
+            </div>
+            <div class="card">
+                <h2>Forwarder Controls</h2>
+                <div>
+                    <p><strong>TCP Forwarder:</strong>
+                        <span id="tcp-status" style="color: red;">Inactive</span>
+                    </p>
+                    <button class="button" onclick="restartForwarder('tcp')">Restart TCP Forwarder</button>
+                    <button class="button" onclick="stopForwarder('tcp')">Stop TCP Forwarder</button>
+                </div>
+                <hr style="border: 1px solid #ddd; margin: 20px 0;"> 
+                <div>
+                    <p><strong>UDP Forwarder:</strong>
+                        <span id="udp-status" style="color: red;">Inactive</span>
+                    </p>
+                    <button class="button" onclick="restartForwarder('udp')">Restart UDP Forwarder</button>
+                    <button class="button" onclick="stopForwarder('udp')">Stop UDP Forwarder</button>
+                </div>
+            </div>
+
+
+            <div class="traffic-section">
+                <h2>Network Traffic</h2>
+                <select id="port-selector" onchange="updateTrafficStats()">
+                    {% for port in ports %}
+                    <option value="{{ port }}">Port: {{ port }}</option>
+                    {% endfor %}
+                </select>
+                <div class="traffic-stats">
+                    <p>Data Sent: <span id="bytes-sent">0 GB</span></p>
+                    <p>Data Received: <span id="bytes-received">0 GB</span></p>
+                    <p>Packets Sent: <span id="packets-sent">0</span></p>
+                    <p>Packets Received: <span id="packets-received">0</span></p>
+                </div>
+            </div>
+
+            <div class="system-logs">
+                <h2>System Logs</h2>
+                <pre id="system-logs">Loading logs...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function fetchMetrics() {
+                fetch('/metrics')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('cpu-usage').innerText = `${data.cpu_usage.toFixed(0)}%`;
+                        document.getElementById('ram-usage').innerText = `${data.ram_usage.toFixed(0)}%`;
+                        document.getElementById('system-uptime').innerText = data.uptime || 'نامشخص'; 
+                    })
+                    .catch(error => console.error('Error fetching metrics:', error));
+            }
+
+
+        function fetchTrafficStats() {
+                const port = document.getElementById('port-selector').value;
+                fetch('/network-stats')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data[port]) {
+                            document.getElementById('bytes-sent').innerText = data[port].bytes_sent || "0 GB";
+                            document.getElementById('bytes-received').innerText = data[port].bytes_received || "0 GB";
+                            document.getElementById('packets-sent').innerText = data[port].packets_sent || "0";
+                            document.getElementById('packets-received').innerText = data[port].packets_received || "0";
+                        } else {
+                            document.getElementById('bytes-sent').innerText = "0 GB";
+                            document.getElementById('bytes-received').innerText = "0 GB";
+                            document.getElementById('packets-sent').innerText = "0";
+                            document.getElementById('packets-received').innerText = "0";
+                        }
+                    })
+                    .catch(error => console.error('Error fetching traffic stats:', error));
+            }
+
+
+        function fetchSystemLogs() {
+            fetch('/system-logs')
+                .then(response => response.json())
+                .then(data => {
+                    const logs = data.logs.split('\n');
+                    const logsContainer = document.getElementById('system-logs');
+                    logsContainer.innerHTML = logs.map(log => `<div>• ${log}</div>`).join('');
+                })
+                .catch(error => console.error('Error fetching system logs:', error));
+        }
+
+        function fetchUptime() {
+            fetch('/uptime')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('uptime').innerText = data.uptime || 'Calculating...';
+                })
+                .catch(error => console.error('Error fetching uptime:', error));
+        }
+
+        function fetchTunnelStatus() {
+                fetch('/tunnel-status')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('tcp-status').innerText = data.tcp_forwarder || 'Inactive';
+                        document.getElementById('udp-status').innerText = data.udp_forwarder || 'Inactive';
+                    })
+                    .catch(error => console.error('Error fetching tunnel status:', error));
+            }
+        function restartForwarder(type) {
+                fetch(`/restart-${type}-forwarder`, { method: 'POST' })
+                    .then(response => {
+                        if (response.ok) {
+                            alert(`${type.toUpperCase()} forwarder restarted successfully.`);
+                            fetchForwarderStatus(); 
+                        } else {
+                            alert(`Failed to restart ${type.toUpperCase()} forwarder.`);
+                        }
+                    })
+                    .catch(error => console.error(`Error restarting ${type.toUpperCase()} forwarder:`, error));
+            }
+
+            function stopForwarder(type) {
+                fetch(`/stop-${type}-forwarder`, { method: 'POST' })
+                    .then(response => {
+                        if (response.ok) {
+                            alert(`${type.toUpperCase()} forwarder stopped successfully.`);
+                            fetchForwarderStatus(); 
+                        } else {
+                            alert(`Failed to stop ${type.toUpperCase()} forwarder.`);
+                        }
+                    })
+                    .catch(error => console.error(`Error stopping ${type.toUpperCase()} forwarder:`, error));
+            }
+
+            function fetchForwarderStatus() {
+                    fetch('/tunnel-status')
+                        .then(response => response.json())
+                        .then(data => {
+                            const tcpStatus = document.getElementById('tcp-status');
+                            if (data.tcp_forwarder === 'Active') {
+                                tcpStatus.innerText = 'Active';
+                                tcpStatus.style.color = 'green';
+                            } else {
+                                tcpStatus.innerText = 'Inactive';
+                                tcpStatus.style.color = 'red';
+                            }
+
+                            const udpStatus = document.getElementById('udp-status');
+                            if (data.udp_forwarder === 'Active') {
+                                udpStatus.innerText = 'Active';
+                                udpStatus.style.color = 'green';
+                            } else {
+                                udpStatus.innerText = 'Inactive';
+                                udpStatus.style.color = 'red';
+                            }
+                        })
+                        .catch(error => console.error('Error fetching forwarder status:', error));
+                }
+
+        setInterval(fetchMetrics, 5000);
+        setInterval(fetchTrafficStats, 5000);
+        setInterval(fetchSystemLogs, 10000);
+        setInterval(fetchUptime, 5000);
+        setInterval(fetchTunnelStatus, 5000);
+        fetchForwarderStatus();
+        fetchMetrics();
+        fetchTrafficStats();
+        fetchSystemLogs();
+        fetchUptime();
+        fetchTunnelStatus();
+    </script>
+
+</body>
+
+</html>

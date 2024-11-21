@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Tunnel Logs</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #e0e0e0, #f5f5f5);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .main-container {
+            display: flex;
+            width: 100%;
+            max-width: 1400px;
+            margin: auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: #2b2b2b;
+            color: #ffffff;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar h2 {
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar ul li {
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 8px;
+            transition: background-color 0.3s, color 0.3s;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .sidebar ul li:hover {
+            background-color: #4a90e2;
+        }
+
+        .sidebar ul li.active {
+            background-color: #4a90e2;
+        }
+
+        .sidebar ul li a {
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .content {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: left;
+            color: #333;
+        }
+
+        .log-container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+        }
+
+        .log-container ul {
+            list-style-type: disc;
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        .log-container ul li {
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .button {
+            background-color: #f44336;
+            color: #ffffff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            align-self: flex-start;
+        }
+
+        .button:hover {
+            background-color: #d32f2f;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+
+            .log-container {
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-container">
+        <div class="sidebar">
+            <h2>Navigation</h2>
+            <ul>
+                <li class="{% if request.endpoint == 'home' %}active{% endif %}"><a
+                        href="{{ url_for('home') }}">Home</a></li>
+                <li class="{% if request.endpoint == 'public_ip_settings_page' %}active{% endif %}"><a
+                        href="{{ url_for('public_ip_settings_page') }}">Public IP Settings</a></li>
+                <li class="{% if request.endpoint == 'tunnel_logs' %}active{% endif %}"><a
+                        href="{{ url_for('tunnel_logs') }}">Tunnel Logs</a></li>
+                <li class="{% if request.endpoint == 'api_page' %}active{% endif %}"><a
+                        href="{{ url_for('api_page') }}">API Key Management</a></li>
+                <li><a href="https://github.com/Azumi67m" target="_blank">GitHub Profile</a></li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <h1>Tunnel Logs</h1>
+            <button class="button" onclick="clearLogs()">Clear Logs</button>
+            <div class="log-container" id="tunnel-logs">
+                <ul id="log-list">Loading logs...</ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function fetchTunnelLogs() {
+            fetch('/api/tunnel-logs')
+                .then(response => response.json())
+                .then(data => {
+                    const logList = document.getElementById('log-list');
+                    logList.innerHTML = '';
+
+                    const logLines = data.logs.split('\n');
+                    logLines.forEach(line => {
+                        if (line.trim()) {
+                            const logItem = document.createElement('li');
+                            logItem.textContent = line;
+                            logList.appendChild(logItem);
+                        }
+                    });
+                })
+                .catch(error => console.error('Error fetching tunnel logs:', error));
+        }
+
+        function clearLogs() {
+            fetch('/clear-tunnel-logs', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Logs cleared successfully.');
+                        fetchTunnelLogs(); 
+                    } else {
+                        alert('Failed to clear logs.');
+                    }
+                })
+                .catch(error => console.error('Error clearing logs:', error));
+        }
+
+        setInterval(fetchTunnelLogs, 10000);
+        fetchTunnelLogs();
+    </script>
+</body>
+
+</html>
