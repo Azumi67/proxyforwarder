@@ -1,0 +1,5 @@
+{
+    "telegram_bot_token": "YOUR_TELEGRAM_BOT_TOKEN",
+    "api_base_url": "http://localhost:8080",
+    "api_key": "YOUR_API_KEY"
+}
