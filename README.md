@@ -16,7 +16,7 @@
 - داری thread pool
 - دارای پورت رنج و پورت به صورت single
 - پشتیبانی از tcp و udp
-- دارای tcpnodelay
+- دارای tcpnodelay و tcp keepalive
 - دارای tcp health check
 - دارای لاگ های info,debug,trace,error,warn و ذخیره آن در لاگ فایل
 - دارای max connection برای tcp
@@ -125,7 +125,7 @@ buffer_size: 8092  #بافر سایز . میتوانید حتی بیشترین �
 monitoring_port: 8080  # پورت مانیتور 
 
 timeout:
-  connection: 30  # Timeout for connections in seconds
+  connection: 300  # Timeout for connections in seconds
 
 health_check:
   enabled: true  #true or false
