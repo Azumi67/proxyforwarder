@@ -117,19 +117,19 @@ thread_pool:
   threads: 2    # threads for cpu cores  بستگی به تعداد هسته پردارشگر شما دارد
 
 max_connections: 200  # تعداد نهایی کانکشن هم زمان
-retry_attempts: 3   # مقدار تلاش دوباره برای برقرار ارتباط
-retry_delay: 2      # وقفه به ثانیه بین هر تلاش مجدد برای برقراری ارتباط
+retry_attempts: 5   # مقدار تلاش دوباره برای برقرار ارتباط
+retry_delay: 10      # وقفه به ثانیه بین هر تلاش مجدد برای برقراری ارتباط
 tcp_no_delay: true  # Disable Nagle's algorithm for low latency
 buffer_size: 8092  #بافر سایز . میتوانید حتی بیشترین مقدار 65535 بذارید. باید بررسی کنید
 
 monitoring_port: 8080  # پورت مانیتور 
 
 timeout:
-  connection: 300  # Timeout for connections in seconds
+  connection: 3000  # Timeout for connections in seconds
 
 health_check:
   enabled: true  #true or false
-  interval: 60  # Interval for performing health checks in seconds
+  interval: 300  # Interval for performing health checks in seconds
 
 logging:
   enabled: true   # Enable or disable logging (true/false)
@@ -149,7 +149,7 @@ dstAddrPorts:
   - "66.200.1.1:1150"
   - "66.200.1.2:1151"
 
-timeout: 300   # Timeout for idle connections (in seconds)
+timeout: 3000   # Timeout for idle connections (in seconds)
 buffer_size: 8092   #buffer size or max 65530
 thread_pool:
   threads: 2
