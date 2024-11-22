@@ -119,7 +119,7 @@ thread_pool:
 max_connections: 200  # تعداد نهایی کانکشن هم زمان
 retry_attempts: 5   # مقدار تلاش دوباره برای برقرار ارتباط
 retry_delay: 10      # وقفه به ثانیه بین هر تلاش مجدد برای برقراری ارتباط
-tcp_no_delay: true  # Disable Nagle's algorithm for low latency
+tcp_no_delay: false  # Disable Nagle's algorithm for low latency
 buffer_size: 8092  #بافر سایز . میتوانید حتی بیشترین مقدار 65535 بذارید. باید بررسی کنید
 
 monitoring_port: 8080  # پورت مانیتور 
