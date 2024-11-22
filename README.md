@@ -131,6 +131,12 @@ health_check:
   enabled: true  #true or false
   interval: 300  # Interval for performing health checks in seconds
 
+tcp_keep_alive:
+  enabled: true          # enable or disable TCP keepalive
+  idle: 60               # time in seconds the connection is idle before keepalive goods are sent
+  interval: 10           # time in seconds between individual keep-alive probes
+  count: 5               # number of keepalive goods sent before the connection is dropped
+
 logging:
   enabled: true   # Enable or disable logging (true/false)
   file: "logfile.log" # Name of the file
