@@ -59,15 +59,18 @@
 <div align="right">
   <details>
     <summary><strong><img src="https://github.com/Azumi67/Rathole_reverseTunnel/assets/119934376/3cfd920d-30da-4085-8234-1eec16a67460" alt="Image"> نکات</strong></summary>
-  
+    
 ------------------------------------ 
 
+
+    
 - ادرس لاگ ها و backup در همان داخل پروژه میباشد
 - لاگ های flask و forwarder داخل پروژه میباشد
 - فایل config.yaml هم در داخل پروژه میباشد
 - اگر سرور شما منابع خوبی دارد میتوانید حتی buffer size را بر روی 65535 قراز دهید. این مورد را باید خود شما تست نمایید.
 
-  </details>
+
+</details>
 </div>
   
 ------------------------------------ 
