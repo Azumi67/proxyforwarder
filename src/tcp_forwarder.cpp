@@ -10,7 +10,7 @@
 #include <condition_variable>
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/steady_timer.hpp>
+#include <boost/asio/steady_timer.hpp>  
 #include <yaml-cpp/yaml.h>
 #include <sstream>
 #include <unordered_map>
@@ -294,6 +294,26 @@ void validate_and_set_defaults(YAML::Node &config)
     {
         throw std::runtime_error("Error: 'health_check.enabled' and 'health_check.interval' must be specified.");
     }
+
+    if (!config["tcp_keep_alive"])
+    {
+        config["tcp_keep_alive"]["enabled"] = false;
+    }
+    else
+    {
+        if (!config["tcp_keep_alive"]["idle_time"])
+        {
+            config["tcp_keep_alive"]["idle_time"] = 30;
+        }
+        if (!config["tcp_keep_alive"]["interval"])
+        {
+            config["tcp_keep_alive"]["interval"] = 10;
+        }
+        if (!config["tcp_keep_alive"]["count"])
+        {
+            config["tcp_keep_alive"]["count"] = 5;
+        }
+    }
 }
 
 class Session : public std::enable_shared_from_this<Session>
@@ -301,7 +321,7 @@ class Session : public std::enable_shared_from_this<Session>
 public:
     Session(boost::asio::io_context &io_context, tcp::socket in_socket, const tcp::endpoint &target_endpoint,
             std::size_t buffer_size, bool tcp_no_delay, int retry_attempts, int retry_delay, Logger &logger,
-            std::atomic<int> &active_connections)
+            std::atomic<int> &active_connections, const YAML::Node &tcp_keep_alive)
         : io_context_(io_context),
           in_socket_(std::move(in_socket)),
           out_socket_(io_context),
@@ -314,33 +334,69 @@ public:
           timer_(io_context),
           logger_(logger),
           active_connections_(active_connections),
+          tcp_keep_alive_(tcp_keep_alive),
           data_in_(buffer_size),
           data_out_(buffer_size)
     {
         ++active_connections_;
         logger_.debug("Session created. Active connections: " + std::to_string(active_connections_));
 
-        boost::system::error_code ec;
-        in_socket_.set_option(tcp::no_delay(tcp_no_delay_), ec);
-        if (ec)
-        {
-            logger_.error("seting up TCP nodelay on incoming socket failed: " + ec.message());
-        }
-        else
-        {
-            logger_.info("TCP nodelay has been set on incoming socket");
-        }
+    boost::system::error_code ec;
+    in_socket_.set_option(tcp::no_delay(tcp_no_delay_), ec);
+    if (ec)
+    {
+        logger_.error("seting up TCP nodelay on incoming socket failed: " + ec.message());
     }
+    else
+    {
+        logger_.info("TCP nodelay has been set on incoming socket");
+    }
+}
 
-    ~Session()
+~Session()
     {
         --active_connections_;
         logger_.debug("Session destroyed. Active connections: " + std::to_string(active_connections_));
     }
+    void set_keep_alive_options(tcp::socket &socket)
+    {
+        if (tcp_keep_alive_["enabled"].as<bool>())
+        {
+            boost::system::error_code ec;
+            socket.set_option(boost::asio::socket_base::keep_alive(true), ec);
+            if (ec)
+            {
+                logger_.warn("enabling TCP keepalive failed: " + ec.message());
+                return;
+            }
+
+#ifdef _WIN32
+            logger_.info("Keepalive enabled but not configurable on Windows");
+#else
+            int idle = tcp_keep_alive_["idle_time"].as<int>();
+            int interval = tcp_keep_alive_["interval"].as<int>();
+            int count = tcp_keep_alive_["count"].as<int>();
+
+            if (setsockopt(socket.native_handle(), SOL_TCP, TCP_KEEPIDLE, &idle, sizeof(idle)) < 0 ||
+                setsockopt(socket.native_handle(), SOL_TCP, TCP_KEEPINTVL, &interval, sizeof(interval)) < 0 ||
+                setsockopt(socket.native_handle(), SOL_TCP, TCP_KEEPCNT, &count, sizeof(count)) < 0)
+            {
+                logger_.warn("seting up TCP keepalive parameters failed");
+            }
+            else
+            {
+                logger_.info("TCP keepalive parameters set: idle=" + std::to_string(idle) +
+                             ", interval=" + std::to_string(interval) +
+                             ", count=" + std::to_string(count));
+            }
+#endif
+        }
+    }
 
     void start()
     {
-        logger_.trace("Starting session..");
+        logger_.trace("Starting session...");
+        set_keep_alive_options(in_socket_);
         attempt_connection();
     }
 
@@ -349,30 +405,26 @@ private:
     {
         if (current_attempt_ >= retry_attempts_)
         {
-            logger_.error("max retry attempts has been reached. Connection failed.");
+            logger_.error("Max retry attempts reached. Connection failed.");
             return;
         }
 
         auto self(shared_from_this());
-        logger_.trace("Attempting to connect to target IP...");
         out_socket_.async_connect(target_endpoint_, [this, self](boost::system::error_code ec)
                                   {
-            if (!ec) {
-                logger_.info("Connected to target endpoint successfully.");
-                boost::system::error_code ec;
-                out_socket_.set_option(tcp::no_delay(tcp_no_delay_), ec);
-                if (ec) {
-                    logger_.error("setting up TCP nodelay on outgoing socket failed: " + ec.message());
-                } else {
-                    logger_.info("TCP nodelay has been set on outgoing socket");
-                }
-                plz_forward();
-            } else {
-                logger_.warn("Connection attempt " + std::to_string(current_attempt_ + 1) + " failed: " + ec.message());
-                ++current_attempt_;
-                timer_.expires_after(std::chrono::seconds(retry_delay_));
-                timer_.async_wait([this, self](boost::system::error_code) { attempt_connection(); });
-            } });
+        if (!ec)
+        {
+            logger_.info("Connected to target endpoint.");
+            set_keep_alive_options(out_socket_);
+            plz_forward();
+        }
+        else
+        {
+            logger_.warn("Connection attempt failed: " + ec.message());
+            ++current_attempt_;
+            timer_.expires_after(std::chrono::seconds(retry_delay_));
+            timer_.async_wait([this, self](boost::system::error_code) { attempt_connection(); });
+        } });
     }
 
     void plz_forward()
@@ -408,7 +460,7 @@ private:
         else if (ec == boost::asio::error::eof)
         {
             logger_.info("EOF received.. closing connection.");
-            clean_up(); /
+            clean_up(); 
         }
         else
         {
@@ -455,6 +507,7 @@ private:
     std::atomic<int> &active_connections_;
     std::vector<char> data_in_;
     std::vector<char> data_out_;
+    YAML::Node tcp_keep_alive_;
 };
 
 class HealthChecker
@@ -467,6 +520,7 @@ public:
 
     void start()
     {
+    
         logger_.trace("Starting health checks...");
         schedule_check();
     }
@@ -494,9 +548,10 @@ public:
     TCPForwarder(boost::asio::io_context &io_context, const YAML::Node &config, Logger &logger)
         : io_context_(io_context),
           logger_(logger),
+          config_(config),
           active_connections_(0)
     {
-        logger_.trace("Trying to initiate TCP Forwarder...");
+        logger_.trace("Initializing TCP Forwarder...");
 
         std::size_t buffer_size = config["buffer_size"].as<std::size_t>();
         bool tcp_no_delay = config["tcp_no_delay"].as<bool>();
@@ -504,29 +559,55 @@ public:
         int retry_delay = config["retry_delay"].as<int>();
         int max_connections = config["max_connections"].as<int>();
 
+        if (!config["forwarders"] || !config["forwarders"].IsSequence())
+        {
+            throw std::runtime_error("Error: 'forwarders' must be specified and must be a sequence.");
+        }
+
         for (const auto &forwarder : config["forwarders"])
         {
+            if (!forwarder["listen_address"] || !forwarder["target_address"])
+            {
+                logger_.error("Forwarder configuration must include 'listen_address' and 'target_address'. Skipping this entry.");
+                continue;
+            }
+
             std::string listen_address = forwarder["listen_address"].as<std::string>();
             std::string target_address = forwarder["target_address"].as<std::string>();
 
-            if (forwarder["port_range"])
+            try
             {
-                int start_port = forwarder["port_range"]["start"].as<int>();
-                int end_port = forwarder["port_range"]["end"].as<int>();
-                for (int port = start_port; port <= end_port; ++port)
+                if (forwarder["port_range"])
                 {
-                    tcp::endpoint listen_endpoint(boost::asio::ip::make_address(listen_address), port);
-                    tcp::endpoint target_endpoint(boost::asio::ip::make_address(target_address), port);
+                    int start_port = forwarder["port_range"]["start"].as<int>();
+                    int end_port = forwarder["port_range"]["end"].as<int>();
+                    for (int port = start_port; port <= end_port; ++port)
+                    {
+                        tcp::endpoint listen_endpoint(boost::asio::ip::make_address(listen_address), port);
+                        tcp::endpoint target_endpoint(boost::asio::ip::make_address(target_address), port);
+                        start_con(listen_endpoint, target_endpoint, buffer_size, tcp_no_delay, retry_attempts, retry_delay, max_connections);
+                    }
+                }
+                else
+                {
+
+                    if (!forwarder["listen_port"] || !forwarder["target_port"])
+                    {
+                        logger_.error("Forwarder configuration must include 'listen_port' and 'target_port' if 'port_range' is not specified.");
+                        continue;
+                    }
+
+                    int listen_port = forwarder["listen_port"].as<int>();
+                    int target_port = forwarder["target_port"].as<int>();
+
+                    tcp::endpoint listen_endpoint(boost::asio::ip::make_address(listen_address), listen_port);
+                    tcp::endpoint target_endpoint(boost::asio::ip::make_address(target_address), target_port);
                     start_con(listen_endpoint, target_endpoint, buffer_size, tcp_no_delay, retry_attempts, retry_delay, max_connections);
                 }
             }
-            else
+            catch (const std::exception &e)
             {
-                int listen_port = forwarder["listen_port"].as<int>();
-                int target_port = forwarder["target_port"].as<int>();
-                tcp::endpoint listen_endpoint(boost::asio::ip::make_address(listen_address), listen_port);
-                tcp::endpoint target_endpoint(boost::asio::ip::make_address(target_address), target_port);
-                start_con(listen_endpoint, target_endpoint, buffer_size, tcp_no_delay, retry_attempts, retry_delay, max_connections);
+                logger_.error("initializing forwarder failed: " + std::string(e.what()));
             }
         }
     }
@@ -535,32 +616,53 @@ private:
     void start_con(const tcp::endpoint &listen_endpoint, const tcp::endpoint &target_endpoint, std::size_t buffer_size,
                    bool tcp_no_delay, int retry_attempts, int retry_delay, int max_connections)
     {
-        auto acceptor = std::make_shared<tcp::acceptor>(io_context_, listen_endpoint);
-        logger_.info("Listening on " + listen_endpoint.address().to_string() + ":" + std::to_string(listen_endpoint.port()));
-        plz_accept(acceptor, target_endpoint, buffer_size, tcp_no_delay, retry_attempts, retry_delay, max_connections);
+        try
+        {
+            auto acceptor = std::make_shared<tcp::acceptor>(io_context_, listen_endpoint);
+            logger_.info("Listening on " + listen_endpoint.address().to_string() + ":" + std::to_string(listen_endpoint.port()));
+
+            YAML::Node tcp_keep_alive_config = config_["tcp_keep_alive"];
+
+            plz_accept(acceptor, target_endpoint, buffer_size, tcp_no_delay, retry_attempts, retry_delay, max_connections, tcp_keep_alive_config);
+        }
+        catch (const std::exception &e)
+        {
+            logger_.error("couldn't start listener on " + listen_endpoint.address().to_string() + ":" +
+                          std::to_string(listen_endpoint.port()) + ". error: " + e.what());
+        }
     }
 
     void plz_accept(std::shared_ptr<tcp::acceptor> acceptor, const tcp::endpoint &target_endpoint, std::size_t buffer_size,
-                    bool tcp_no_delay, int retry_attempts, int retry_delay, int max_connections)
+                    bool tcp_no_delay, int retry_attempts, int retry_delay, int max_connections, const YAML::Node &tcp_keep_alive_config)
     {
-        acceptor->async_accept([this, acceptor, target_endpoint, buffer_size, tcp_no_delay, retry_attempts, retry_delay, max_connections](boost::system::error_code ec, tcp::socket in_socket)
+        acceptor->async_accept([this, acceptor, target_endpoint, buffer_size, tcp_no_delay, retry_attempts, retry_delay, max_connections, tcp_keep_alive_config](boost::system::error_code ec, tcp::socket in_socket)
                                {
-            if (!ec) {
-                if (active_connections_ >= max_connections) {
-                    logger_.warn("max connections reached. Rejecting new connection.");
+            if (!ec)
+            {
+                if (active_connections_ >= max_connections)
+                {
+                    logger_.warn("Max connections reached. Rejecting new connection.");
                     in_socket.close();
-                } else {
-                    logger_.info("Accepted new connection");
-                    std::make_shared<Session>(io_context_, std::move(in_socket), target_endpoint, buffer_size, tcp_no_delay, retry_attempts, retry_delay, logger_, active_connections_)->start();
                 }
-            } else {
+                else
+                {
+                    logger_.info("Accepted new connection");
+                    std::make_shared<Session>(io_context_, std::move(in_socket), target_endpoint, buffer_size, tcp_no_delay,
+                                              retry_attempts, retry_delay, logger_, active_connections_, tcp_keep_alive_config)
+                        ->start();
+                }
+            }
+            else
+            {
                 logger_.error("Accept error: " + ec.message());
             }
-            plz_accept(acceptor, target_endpoint, buffer_size, tcp_no_delay, retry_attempts, retry_delay, max_connections); });
+
+            plz_accept(acceptor, target_endpoint, buffer_size, tcp_no_delay, retry_attempts, retry_delay, max_connections, tcp_keep_alive_config); });
     }
 
     boost::asio::io_context &io_context_;
     Logger &logger_;
+    YAML::Node config_;
     std::atomic<int> active_connections_;
 };
 
