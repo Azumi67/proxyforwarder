@@ -324,22 +324,11 @@ public:
         in_socket_.set_option(tcp::no_delay(tcp_no_delay_), ec);
         if (ec)
         {
-            logger_.error("setting up TCP nodelay on incoming socket failed: " + ec.message());
+            logger_.error("seting up TCP nodelay on incoming socket failed: " + ec.message());
         }
         else
         {
-            logger_.info("TCP nodelay enabled on incoming socket.");
-        }
-
-        boost::asio::socket_base::keep_alive keep_alive_option(true);
-        in_socket_.set_option(keep_alive_option, ec);
-        if (ec)
-        {
-            logger_.error("TCP keepalive on incoming socket failed to setup: " + ec.message());
-        }
-        else
-        {
-            logger_.info("TCP keepalive enabled on incoming socket.");
+            logger_.info("TCP nodelay has been set on incoming socket");
         }
     }
 
@@ -360,8 +349,7 @@ private:
     {
         if (current_attempt_ >= retry_attempts_)
         {
-            logger_.error("Max retry attempts reached. Closing connection.");
-            close_sockets();
+            logger_.error("max retry attempts has been reached. Connection failed.");
             return;
         }
 
@@ -369,35 +357,17 @@ private:
         logger_.trace("Attempting to connect to target IP...");
         out_socket_.async_connect(target_endpoint_, [this, self](boost::system::error_code ec)
                                   {
-            if (!ec)
-            {
+            if (!ec) {
                 logger_.info("Connected to target endpoint successfully.");
-
-                boost::asio::socket_base::keep_alive keep_alive_option(true);
-                out_socket_.set_option(keep_alive_option, ec);
-                if (ec)
-                {
-                    logger_.error("setting up TCP keepalive on outgoing socket failed: " + ec.message());
-                }
-                else
-                {
-                    logger_.info("TCP keepalive enabled on outgoing socket.");
-                }
-
+                boost::system::error_code ec;
                 out_socket_.set_option(tcp::no_delay(tcp_no_delay_), ec);
-                if (ec)
-                {
+                if (ec) {
                     logger_.error("setting up TCP nodelay on outgoing socket failed: " + ec.message());
+                } else {
+                    logger_.info("TCP nodelay has been set on outgoing socket");
                 }
-                else
-                {
-                    logger_.info("TCP nodelay enabled on outgoing socket.");
-                }
-
                 plz_forward();
-            }
-            else
-            {
+            } else {
                 logger_.warn("Connection attempt " + std::to_string(current_attempt_ + 1) + " failed: " + ec.message());
                 ++current_attempt_;
                 timer_.expires_after(std::chrono::seconds(retry_delay_));
@@ -417,52 +387,58 @@ private:
         auto self(shared_from_this());
         source.async_read_some(boost::asio::buffer(buffer), [this, self, &source, &destination, &buffer](boost::system::error_code ec, std::size_t length)
                                {
-            if (!ec)
-            {
-                logger_.debug("Read " + std::to_string(length) + " bytes from source.");
-                boost::asio::async_write(destination, boost::asio::buffer(buffer, length),
-                [this, self, &source, &destination, &buffer](boost::system::error_code write_ec, std::size_t)
-                {
-                    if (!write_ec)
-                    {
-                        logger_.trace("Data forwarded successfully.");
-                        forward_data(source, destination, buffer);
-                    }
-                    else if (write_ec != boost::asio::error::operation_aborted)
-                    {
-                        logger_.error("Write error: " + write_ec.message());
-                        close_sockets();
-                    }
-                });
-            }
-            else if (ec == boost::asio::error::eof || ec == boost::asio::error::connection_reset)
-            {
-                logger_.warn("Connection closed by remote host: " + ec.message());
-                close_sockets();
-            }
-            else if (ec != boost::asio::error::operation_aborted)
-            {
-                logger_.error("Read error: " + ec.message());
-                close_sockets();
-            } });
+        if (!ec)
+        {
+            logger_.debug("Data read from source. Length: " + std::to_string(length));
+            boost::asio::async_write(destination, boost::asio::buffer(buffer, length),
+                                     [this, self, &source, &destination, &buffer](boost::system::error_code write_ec, std::size_t /*bytes_transferred*/)
+                                     {
+                                         if (!write_ec)
+                                         {
+                                             logger_.trace("Data forwarded successfully.");
+                                             forward_data(source, destination, buffer); 
+                                         }
+                                         else
+                                         {
+                                             logger_.warn("Write error: " + write_ec.message());
+                                             clean_up(); 
+                                         }
+                                     });
+        }
+        else if (ec == boost::asio::error::eof)
+        {
+            logger_.info("EOF received.. closing connection.");
+            clean_up(); /
+        }
+        else
+        {
+            logger_.error("Read error: " + ec.message());
+            clean_up(); 
+        } });
+    }
+
+    void clean_up()
+    {
+        boost::system::error_code ec;
+        if (in_socket_.is_open())
+        {
+            in_socket_.shutdown(tcp::socket::shutdown_both, ec);
+            in_socket_.close(ec);
+        }
+        if (out_socket_.is_open())
+        {
+            out_socket_.shutdown(tcp::socket::shutdown_both, ec);
+            out_socket_.close(ec);
+        }
+        logger_.info("Session cleaned up. Sockets closed.");
     }
 
     void close_sockets()
     {
         boost::system::error_code ec;
         in_socket_.close(ec);
-        if (ec)
-        {
-            logger_.warn("error in closing incoming socket: " + ec.message());
-        }
-
         out_socket_.close(ec);
-        if (ec)
-        {
-            logger_.warn("error in closing outgoing socket: " + ec.message());
-        }
-
-        logger_.info("Sockets closed. Active connections: " + std::to_string(active_connections_));
+        logger_.info("Sockets closed");
     }
 
     boost::asio::io_context &io_context_;
