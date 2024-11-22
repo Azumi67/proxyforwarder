@@ -134,7 +134,7 @@ logging:
   level: "INFO"  # Options: "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "ALL"
 ```
  <div align="right">
-- نمونه کانفیگ tcp
+- نمونه کانفیگ udp
  <div align="left">
    
 ```
