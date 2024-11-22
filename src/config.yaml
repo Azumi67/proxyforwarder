@@ -23,22 +23,22 @@ forwarders:
       end: 9095
 
 thread_pool:
-  threads: 2    # threads for cpu cores
+  threads: 2    # threads based on the number of cpu cores
 
 max_connections: 200  # Maximum number of simultaneous active connections
-retry_attempts: 3   # Number of retry attempts for connections
-retry_delay: 2      # delay between retries in seconds
-tcp_no_delay: true  # Disable Nagle's algorithm for low latency
+retry_attempts: 5   # Number of retry attempts for connections
+retry_delay: 10     # delay between retries in seconds
+tcp_no_delay: false  # Disable Nagle's algorithm for low latency
 buffer_size: 8092  #max buffer size 65535 or whatever
 
 monitoring_port: 8080  # monitoring port used by flask
 
 timeout:
-  connection: 300  # Timeout for connections in seconds
+  connection: 3000  # Timeout for connections in seconds
 
 health_check:
   enabled: true  #true or false
-  interval: 60  # Interval for performing health checks in seconds
+  interval: 300  # Interval for performing health checks in seconds
 
 logging:
   enabled: true   # Enable or disable logging (true/false)
@@ -55,7 +55,7 @@ dstAddrPorts:
   - "66.200.1.1:1150"
   - "66.200.1.2:1151"
 
-timeout: 300   # Timeout for idle connections (in seconds)
+timeout: 3000   # Timeout for idle connections (in seconds)
 buffer_size: 8092   #buffer size or max 65530
 thread_pool:
   threads: 2
