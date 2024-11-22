@@ -324,11 +324,22 @@ public:
         in_socket_.set_option(tcp::no_delay(tcp_no_delay_), ec);
         if (ec)
         {
-            logger_.error("seting up TCP nodelay on incoming socket failed: " + ec.message());
+            logger_.error("setting up TCP nodelay on incoming socket failed: " + ec.message());
         }
         else
         {
-            logger_.info("TCP nodelay has been set on incoming socket");
+            logger_.info("TCP nodelay enabled on incoming socket.");
+        }
+
+        boost::asio::socket_base::keep_alive keep_alive_option(true);
+        in_socket_.set_option(keep_alive_option, ec);
+        if (ec)
+        {
+            logger_.error("TCP keepalive on incoming socket failed to setup: " + ec.message());
+        }
+        else
+        {
+            logger_.info("TCP keepalive enabled on incoming socket.");
         }
     }
 
@@ -349,7 +360,8 @@ private:
     {
         if (current_attempt_ >= retry_attempts_)
         {
-            logger_.error("max retry attempts has been reached. Connection failed.");
+            logger_.error("Max retry attempts reached. Closing connection.");
+            close_sockets();
             return;
         }
 
@@ -357,17 +369,35 @@ private:
         logger_.trace("Attempting to connect to target IP...");
         out_socket_.async_connect(target_endpoint_, [this, self](boost::system::error_code ec)
                                   {
-            if (!ec) {
+            if (!ec)
+            {
                 logger_.info("Connected to target endpoint successfully.");
-                boost::system::error_code ec;
-                out_socket_.set_option(tcp::no_delay(tcp_no_delay_), ec);
-                if (ec) {
-                    logger_.error("setting up TCP nodelay on outgoing socket failed: " + ec.message());
-                } else {
-                    logger_.info("TCP nodelay has been set on outgoing socket");
+
+                boost::asio::socket_base::keep_alive keep_alive_option(true);
+                out_socket_.set_option(keep_alive_option, ec);
+                if (ec)
+                {
+                    logger_.error("setting up TCP keepalive on outgoing socket failed: " + ec.message());
                 }
+                else
+                {
+                    logger_.info("TCP keepalive enabled on outgoing socket.");
+                }
+
+                out_socket_.set_option(tcp::no_delay(tcp_no_delay_), ec);
+                if (ec)
+                {
+                    logger_.error("setting up TCP nodelay on outgoing socket failed: " + ec.message());
+                }
+                else
+                {
+                    logger_.info("TCP nodelay enabled on outgoing socket.");
+                }
+
                 plz_forward();
-            } else {
+            }
+            else
+            {
                 logger_.warn("Connection attempt " + std::to_string(current_attempt_ + 1) + " failed: " + ec.message());
                 ++current_attempt_;
                 timer_.expires_after(std::chrono::seconds(retry_delay_));
@@ -387,19 +417,31 @@ private:
         auto self(shared_from_this());
         source.async_read_some(boost::asio::buffer(buffer), [this, self, &source, &destination, &buffer](boost::system::error_code ec, std::size_t length)
                                {
-            if (!ec) {
-                logger_.debug("Data read from the sourcePoint. Length: " + std::to_string(length));
+            if (!ec)
+            {
+                logger_.debug("Read " + std::to_string(length) + " bytes from source.");
                 boost::asio::async_write(destination, boost::asio::buffer(buffer, length),
-                                         [this, self, &source, &destination, &buffer](boost::system::error_code write_ec, std::size_t) {
-                                             if (!write_ec) {
-                                                 logger_.trace("Data forwarded successfully.");
-                                                 forward_data(source, destination, buffer);
-                                             } else if (write_ec != boost::asio::error::operation_aborted) {
-                                                 logger_.error("Write error: " + write_ec.message());
-                                                 close_sockets();
-                                             }
-                                         });
-            } else if (ec != boost::asio::error::operation_aborted) {
+                [this, self, &source, &destination, &buffer](boost::system::error_code write_ec, std::size_t)
+                {
+                    if (!write_ec)
+                    {
+                        logger_.trace("Data forwarded successfully.");
+                        forward_data(source, destination, buffer);
+                    }
+                    else if (write_ec != boost::asio::error::operation_aborted)
+                    {
+                        logger_.error("Write error: " + write_ec.message());
+                        close_sockets();
+                    }
+                });
+            }
+            else if (ec == boost::asio::error::eof || ec == boost::asio::error::connection_reset)
+            {
+                logger_.warn("Connection closed by remote host: " + ec.message());
+                close_sockets();
+            }
+            else if (ec != boost::asio::error::operation_aborted)
+            {
                 logger_.error("Read error: " + ec.message());
                 close_sockets();
             } });
@@ -409,8 +451,18 @@ private:
     {
         boost::system::error_code ec;
         in_socket_.close(ec);
+        if (ec)
+        {
+            logger_.warn("error in closing incoming socket: " + ec.message());
+        }
+
         out_socket_.close(ec);
-        logger_.info("Sockets closed");
+        if (ec)
+        {
+            logger_.warn("error in closing outgoing socket: " + ec.message());
+        }
+
+        logger_.info("Sockets closed. Active connections: " + std::to_string(active_connections_));
     }
 
     boost::asio::io_context &io_context_;
