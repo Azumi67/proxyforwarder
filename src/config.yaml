@@ -34,7 +34,7 @@ buffer_size: 8092  #max buffer size 65535 or whatever
 monitoring_port: 8080  # monitoring port used by flask
 
 timeout:
-  connection: 30  # Timeout for connections in seconds
+  connection: 300  # Timeout for connections in seconds
 
 health_check:
   enabled: true  #true or false
