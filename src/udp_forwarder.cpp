@@ -240,7 +240,6 @@ void UDPProxy::pAddress(const std::string &addrPort, sockaddr_inx &sockAddr)
 
 void UDPProxy::setupSocket()
 {
-    // Determine the address family dynamically
     int addrFamily = srcAddr.sa.sa_family;
 
     srcSocket = socket(addrFamily, SOCK_DGRAM, 0);
@@ -369,8 +368,8 @@ void UDPProxy::recycleConnections()
             if (now - it->last_active > timeout)
             {
                 logger.info("Recycling idle connection for client.");
-                rlsConnection(&(*it));
-                it = bucket.erase(it);
+                rlsConnection(&(*it)); 
+                it = bucket.erase(it); 
             }
             else
             {
