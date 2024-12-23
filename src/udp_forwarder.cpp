@@ -358,7 +358,7 @@ void UDPProxy::processConnections()
 void UDPProxy::recycleConnections()
 {
     time_t now = time(nullptr);
-    std::lock_guard<std::mutex> lock(connMutex);
+    std::lock_guard<std::mutex> lock(connMutex); 
 
     for (int i = 0; i < connTblHashSize; ++i)
     {
@@ -368,12 +368,20 @@ void UDPProxy::recycleConnections()
             if (now - it->last_active > timeout)
             {
                 logger.info("Recycling idle connection for client.");
-                rlsConnection(&(*it)); 
+                logger.debug("Releasing connection: Client IP = " + std::string(inet_ntoa(it->cli_addr.in.sin_addr)) +
+                             ", Port = " + std::to_string(ntohs(it->cli_addr.in.sin_port)) +
+                             ", Last active = " + std::to_string(it->last_active));
+
+                rlsConnection(&(*it));
+
+                logger.debug("List size before erase: " + std::to_string(bucket.size()));
                 it = bucket.erase(it); 
+                logger.debug("List size after erase: " + std::to_string(bucket.size()));
+                continue; 
             }
             else
             {
-                ++it;
+                ++it; 
             }
         }
     }
