@@ -351,8 +351,6 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 
 
-  </details>
-</div>
 ```
 ```
 sudo systemctl daemon-reload
@@ -424,7 +422,7 @@ python3 robot.py
 
  <div align="left">
 
- ```
+```
 nano /etc/systemd/system/telegram_bot.service
 -------------------------------
 [Unit]
@@ -451,6 +449,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable telegram_bot
 sudo systemctl start telegram_bot
 sudo systemctl status telegram_bot
+
 ```
 
   </details>
