@@ -152,10 +152,49 @@ def home():
                            uptime=uptime, 
                            ports=ports)
 
+tcp_ports = []
+for forwarder in config.get("forwarders", []):
+    if "port_range" in forwarder:
+        port_range = forwarder.get("port_range", {})
+        start_port = port_range.get("start")
+        end_port = port_range.get("end")
+        if start_port and end_port:
+            try:
+                start = int(start_port)
+                end = int(end_port)
+                if start > end:
+                    print(f"Invalid port range: start port {start} is greater than end port {end}.")
+                    continue
+                tcp_ports.extend(range(start, end + 1))
+            except ValueError:
+                print(f"Invalid port numbers in port_range: {port_range}")
+    elif "listen_port" in forwarder:
+        listen_port = forwarder.get("listen_port")
+        if listen_port:
+            try:
+                tcp_ports.append(int(listen_port))
+            except ValueError:
+                print(f"Invalid listen_port: {listen_port}")
+    else:
+        print(f"Forwarder missing 'listen_port' or 'port_range': {forwarder}")
 
-tcp_ports = [int(forwarder["listen_port"]) for forwarder in config.get("forwarders", [])]
-udp_ports = [int(addr.split(":")[-1]) for addr in config.get("srcAddrPorts", [])]
+udp_ports = []
+for addr in config.get("srcAddrPorts", []):
+    try:
+        udp_port = int(addr.split(":")[-1])
+        udp_ports.append(udp_port)
+    except (ValueError, IndexError):
+        print(f"Invalid srcAddrPort format: {addr}")
+
+for addr in config.get("dstAddrPorts", []):
+    try:
+        udp_port = int(addr.split(":")[-1])
+        udp_ports.append(udp_port)
+    except (ValueError, IndexError):
+        print(f"Invalid dstAddrPort format: {addr}")
+
 ports = list(set(tcp_ports + udp_ports))
+print(f"Initialized Ports: {ports}")
 
 monitoring_port = config.get("monitoring_port", 8080)
 
