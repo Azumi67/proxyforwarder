@@ -201,7 +201,7 @@ private:
     int connTblHashSize;
     Logger &logger;
 
-    std::list<ProxyConn> connTable[256];
+    std::vector<std::shared_ptr<ProxyConn>> connTable[256];
     std::unordered_map<int, ProxyConn *> connMap;
     std::mutex connMutex;
 
@@ -347,7 +347,7 @@ void UDPProxy::processConnections()
                     else
                     {
                         rlsConnection(conn);
-                        logger.warn("Connection released due to read error");
+                        logger.warn("Connection released due to reading error ");
                     }
                 }
             }
@@ -358,32 +358,29 @@ void UDPProxy::processConnections()
 void UDPProxy::recycleConnections()
 {
     time_t now = time(nullptr);
-    std::lock_guard<std::mutex> lock(connMutex); 
+    std::lock_guard<std::mutex> lock(connMutex);
 
     for (int i = 0; i < connTblHashSize; ++i)
     {
         auto &bucket = connTable[i];
-        for (auto it = bucket.begin(); it != bucket.end();)
-        {
-            if (now - it->last_active > timeout)
-            {
-                logger.info("Recycling idle connection for client.");
-                logger.debug("Releasing connection: Client IP = " + std::string(inet_ntoa(it->cli_addr.in.sin_addr)) +
-                             ", Port = " + std::to_string(ntohs(it->cli_addr.in.sin_port)) +
-                             ", Last active = " + std::to_string(it->last_active));
 
-                rlsConnection(&(*it));
+        auto new_end = std::remove_if(bucket.begin(), bucket.end(), [now, this](const std::shared_ptr<ProxyConn> &conn)
+                                      {
+                                          if (now - conn->last_active > timeout)
+                                          {
+                                              logger.info("Recycling idle connection for client.");
+                                              logger.debug("Releasing connection: Client IP = " + std::string(inet_ntoa(conn->cli_addr.in.sin_addr)) +
+                                                           ", Port = " + std::to_string(ntohs(conn->cli_addr.in.sin_port)) +
+                                                           ", Last active = " + std::to_string(conn->last_active));
 
-                logger.debug("List size before erase: " + std::to_string(bucket.size()));
-                it = bucket.erase(it); 
-                logger.debug("List size after erase: " + std::to_string(bucket.size()));
-                continue; 
-            }
-            else
-            {
-                ++it; 
-            }
-        }
+                                              rlsConnection(conn.get()); 
+                                              return true;              
+                                          }
+                                          return false; });
+
+        bucket.erase(new_end, bucket.end());
+
+        logger.debug("Recycled idle connections, new list size: " + std::to_string(bucket.size()));
     }
 }
 
@@ -416,11 +413,11 @@ ProxyConn *UDPProxy::tOrCreateConnection(sockaddr_inx &cliAddr)
     logger.debug("Checking connection table for client address...");
     for (auto &conn : list)
     {
-        if (compareAddresses(&conn.cli_addr, &cliAddr))
+        if (compareAddresses(&conn->cli_addr, &cliAddr))
         {
-            conn.last_active = time(nullptr);
+            conn->last_active = time(nullptr);
             logger.debug("Reused existing connection for client.");
-            return &conn;
+            return conn.get();
         }
     }
 
@@ -443,15 +440,16 @@ ProxyConn *UDPProxy::tOrCreateConnection(sockaddr_inx &cliAddr)
 
     setNonBlocking(svrSock);
 
-    list.push_back({cliAddr, svrSock, time(nullptr)});
-    connMap[svrSock] = &list.back();
+    auto newConn = std::make_shared<ProxyConn>(ProxyConn{cliAddr, svrSock, time(nullptr)});
+    list.push_back(newConn);
+    connMap[svrSock] = newConn.get();
 
     struct epoll_event ev;
     ev.events = EPOLLIN;
     ev.data.fd = svrSock;
     epoll_ctl(epollFd, EPOLL_CTL_ADD, svrSock, &ev);
 
-    return &list.back();
+    return newConn.get();
 }
 
 void UDPProxy::rlsConnection(ProxyConn *conn)
@@ -463,10 +461,16 @@ void UDPProxy::rlsConnection(ProxyConn *conn)
         conn->svr_sock = -1;
     }
 
-    auto &bucket = connTable[hashAddress(&conn->cli_addr)];
-    bucket.remove_if([&](const ProxyConn &item)
-                     { return &item == conn; });
+    int bucket = hashAddress(&conn->cli_addr);
+    auto &bucketVec = connTable[bucket];
+
+    bucketVec.erase(
+        std::remove_if(bucketVec.begin(), bucketVec.end(), [&](const std::shared_ptr<ProxyConn> &item)
+                       { return item.get() == conn; }),
+        bucketVec.end());
+
     connMap.erase(conn->svr_sock);
+
     logger.info("Released & closed connection");
 }
 
