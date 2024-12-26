@@ -186,6 +186,7 @@ monitroing_port: 8080 # or whatever port you want
   
 ```
 apt update -y
+sudo apt-get install libpcap-dev
 apt install git -y
 git clone https://github.com/Azumi67/proxyforwarder.git
 cd proxyforwarder/src
@@ -287,6 +288,7 @@ sudo systemctl status udpforwarder.service
   
 ```
 apt update -y
+sudo apt-get install libpcap-dev
 apt install git -y
 git clone https://github.com/Azumi67/proxyforwarder.git
 cd proxyforwarder/src
@@ -304,6 +306,7 @@ g++ tcp_forwarder.cpp -o tcp_forwarder -std=c++17 -pthread -lboost_system -lyaml
   
 ```
 apt update -y
+sudo apt-get install libpcap-dev
 apt install git -y
 git clone https://github.com/Azumi67/proxyforwarder.git
 cd proxyforwarder/src
@@ -388,6 +391,7 @@ sudo sysctl -p
 #not externally managed
 -----------------------
 apt update -y
+sudo apt-get install libpcap-dev
 apt install git -y
 git clone https://github.com/Azumi67/proxyforwarder.git
 cd proxyforwarder/telegramBot
@@ -401,6 +405,7 @@ pip freeze
 #externally managed
 -----------------------
 apt update -y
+sudo apt-get install libpcap-dev
 apt install git -y
 git clone https://github.com/Azumi67/proxyforwarder.git
 cd proxyforwarder/telegramBot
