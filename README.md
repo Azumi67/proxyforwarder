@@ -327,7 +327,7 @@ nano /root/proxyforwarder/src/config.yaml
 ```
 <div align="right">
 
-- سرویس برای برنامه
+- سرویس برای برنامه tcp
 
 <div align="left">
 
@@ -360,6 +360,40 @@ sudo systemctl daemon-reload
 sudo systemctl start tcpforwarder.service
 sudo systemctl enable tcpforwarder.service
 sudo systemctl status tcpforwarder.service
+```
+- سرویس برای برنامه udp
+
+<div align="left">
+
+```
+nano /etc/systemd/system/udpforwarder.service
+```
+```
+[Unit]
+Description=UDP Forwarder Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/root/proxyforwarder/src/udp_forwarder /root/proxyforwarder/src/config.yaml
+Restart=always
+User=root
+WorkingDirectory=/root/proxyforwarder/src
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=udp_forwarder
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+
+
+```
+```
+sudo systemctl daemon-reload
+sudo systemctl start udpforwarder.service
+sudo systemctl enable udpforwarder.service
+sudo systemctl status udpforwarder.service
 ```
 ```
 ulimit -n 65536
